@@ -4,4 +4,6 @@ version = "0.1.0"
 description = "Simple Housing Scraper for Mercado Libre Apartments"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "pytest-playwright>=0.7.2",
+]

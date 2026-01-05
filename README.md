@@ -12,3 +12,8 @@ This app sends notifications when there are price changes and it tracks the evol
 - Selenium
 - SQLite
 - FastAPI
+- UV package manager
+
+#### Notes:
+
+- I am using `uv` as a python package manager, so commands must be run with `uv run`, and installed with `uv add`.
