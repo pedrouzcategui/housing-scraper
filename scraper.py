@@ -1,26 +1,9 @@
 import asyncio
-from playwright.async_api import async_playwright, Page
-
-from config import *
 import re
+from scraper_utils import get_element_by_id, get_elements_by_classname, scroll_to_load_all
+from playwright.async_api import async_playwright, Page
+from config import *
 
-def get_element_by_id(page: Page, element_id: str):
-    return page.locator(f"#{element_id}").first
-
-def get_elements_by_classname(page: Page, class_name: str):
-    return page.locator(f".{class_name}")
-
-
-async def scroll_to_load_all(page: Page, pause: float = 1.0, max_scrolls: int = 30):
-    """Scroll the page to load lazy content until no more height changes or max_scrolls reached."""
-    previous_height = await page.evaluate("() => document.body.scrollHeight")
-    for _ in range(max_scrolls):
-        await page.evaluate("() => window.scrollTo(0, document.body.scrollHeight)")
-        await asyncio.sleep(pause)
-        new_height = await page.evaluate("() => document.body.scrollHeight")
-        if new_height == previous_height:
-            break
-        previous_height = new_height
 
 # This function scrapes detailed information from a listing page
 async def get_listing_information(page: Page):

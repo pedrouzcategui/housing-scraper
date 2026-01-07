@@ -9,7 +9,7 @@ This app sends notifications when there are price changes and it tracks the evol
 ## Technologies Used
 
 - Python 3.10
-- Selenium
+- Playwright
 - SQLite
 - FastAPI
 - UV package manager
