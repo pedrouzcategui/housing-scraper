@@ -4,9 +4,13 @@ from scraper_utils import get_element_by_id, get_elements_by_classname, scroll_t
 from playwright.async_api import async_playwright, Page
 from config import *
 
+def extract_listing_id_from_url(url: str) -> str:
+    match = re.search(r'/MLV-(\d+)', url)
+    return match.group(1) if match else ""
 
 # This function scrapes detailed information from a listing page
 async def get_listing_information(page: Page):
+    id = extract_listing_id_from_url(page.url)
     title = await page.locator(f".{LISTING_TITLE_HTML_CLASSNAME}").text_content()
     type_ = await page.locator(f".{APARTMENT_OR_HOUSE_HTML_CLASSNAME}").text_content()  # It needs to be "type_" to avoid conflict with Python keyword
     price = await page.locator(f'meta[itemprop="{PRICE_META_PROPERTY}"]').get_attribute("content")
@@ -14,6 +18,7 @@ async def get_listing_information(page: Page):
     desc_el = await page.query_selector(f".{LISTING_DESCRIPTION_HTML_CLASSNAME}")
     description = await desc_el.text_content() if desc_el else None
     
+
     # Scrape specs: area, rooms, bathrooms
     specs_texts = await page.locator(f".{SPECS_CONTAINER_CLASSNAME} .ui-pdp-label span").all_text_contents()
     area = rooms = bathrooms = None
@@ -27,6 +32,7 @@ async def get_listing_information(page: Page):
             bathrooms = text.split()[0]
     
     return {
+        "id": id,
         "title": title,
         "type": type_,
         "price": price,
@@ -37,6 +43,33 @@ async def get_listing_information(page: Page):
         "bathrooms": bathrooms
     }
 
+async def get_all_listings_information(page: Page):
+    # Wait for results to appear
+    await scroll_to_load_all(page, pause=1.0, max_scrolls=40)
+    # We select all items
+    await page.wait_for_selector(f".{LISTING_ITEM_HTML_CLASSNAME}")
+    listings = get_elements_by_classname(page, LISTING_ITEM_HTML_CLASSNAME)
+    hrefs = []
+    print("Total listings found:", await listings.count())
+    for listing in await listings.all():
+        href = await listing.locator("a").get_attribute("href")
+        if href:
+            hrefs.append(href)
+
+    for href in hrefs:
+        await page.goto(href)
+        info = await get_listing_information(page)
+        print(f"Scraped: {info}")
+        await asyncio.sleep(2)
+        # Just for demonstration purposes, go back to listing page
+        await page.go_back()
+
+async def get_all_listings_by_city(page: Page, city: str):
+    pass
+
+async def get_all_listings_by_state(page: Page, state: str):
+    pass
+
 async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=False, slow_mo=100)
@@ -45,24 +78,12 @@ async def main():
         searchbox = get_element_by_id(page, SEARCHBOX_HTML_ID)
         await searchbox.fill("San Antonio de Los Altos")
         await searchbox.press("Enter")
-        # Wait for results to appear, then scroll to load lazy items
-        await page.wait_for_selector(f".{LISTING_ITEM_HTML_CLASSNAME}")
-        await scroll_to_load_all(page, pause=1.0, max_scrolls=40)
-        listings = get_elements_by_classname(page, LISTING_ITEM_HTML_CLASSNAME)
-        hrefs = []
-        print("Total listings found:", await listings.count())
-        # await asyncio.sleep(20)  # Just to ensure all items are fully loaded
-        for listing in await listings.all():
-            href = await listing.locator("a").get_attribute("href")
-            if href:
-                hrefs.append(href)
+        # Here is where the loop begins, basically we have to keep repeating the process while there is a next button
+        next_button = get_elements_by_classname(page, NEXT_BUTTON_HTML_CLASSNAME)
+        while (await next_button.is_visible()):
+            await page.wait_for_load_state("networkidle")
+            await get_all_listings_information(page)
+            next_button = get_elements_by_classname(page, NEXT_BUTTON_HTML_CLASSNAME)
+            await next_button.click()
 
-        # Process all listings from current page
-        for href in hrefs:
-            await page.goto(href)
-            info = await get_listing_information(page)
-            print(f"Scraped: {info}")
-            await asyncio.sleep(2)
-            # Just for demonstration purposes, go back to listing page
-            await page.go_back()
         await browser.close()
