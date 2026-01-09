@@ -3,6 +3,7 @@ import re
 from scraper_utils import get_element_by_id, get_elements_by_classname, scroll_to_load_all
 from playwright.async_api import async_playwright, Page
 from config import *
+import random
 
 def extract_listing_id_from_url(url: str) -> str:
     match = re.search(r'/MLV-(\d+)', url)
@@ -45,14 +46,15 @@ async def get_listing_information(page: Page):
 
 async def get_all_listings_information(page: Page):
     # Wait for results to appear
-    await scroll_to_load_all(page, pause=1.0, max_scrolls=40)
+    await scroll_to_load_all(page, pause=1.5, max_scrolls=40)
     # We select all items
     await page.wait_for_selector(f".{LISTING_ITEM_HTML_CLASSNAME}")
     listings = get_elements_by_classname(page, LISTING_ITEM_HTML_CLASSNAME)
     hrefs = []
-    print("Total listings found:", await listings.count())
+    # await page.pause()
     for listing in await listings.all():
-        href = await listing.locator("a").get_attribute("href")
+        # href = await listing.locator("a").get_attribute("href")
+        href = await listing.locator("a").first.get_attribute("href")
         if href:
             hrefs.append(href)
 
@@ -60,11 +62,23 @@ async def get_all_listings_information(page: Page):
         await page.goto(href)
         info = await get_listing_information(page)
         print(f"Scraped: {info}")
-        await asyncio.sleep(2)
+        delay = random.uniform(1.0, 5.0)
+        await asyncio.sleep(delay)
         # Just for demonstration purposes, go back to listing page
         await page.go_back()
 
 async def get_all_listings_by_city(page: Page, city: str):
+    searchbox = get_element_by_id(page, SEARCHBOX_HTML_ID)
+    await searchbox.fill(city)
+    await searchbox.press("Enter")
+    # Here is where the loop begins, basically we have to keep repeating the process while there is a next button
+    next_button = get_elements_by_classname(page, NEXT_BUTTON_HTML_CLASSNAME)
+    while (await next_button.is_visible()):
+        await page.wait_for_load_state("networkidle")
+        await get_all_listings_information(page)
+        next_button = get_elements_by_classname(page, NEXT_BUTTON_HTML_CLASSNAME)
+        await next_button.click()
+        await page.wait_for_load_state("networkidle")  # Wait for the next page to load
     pass
 
 async def get_all_listings_by_state(page: Page, state: str):
@@ -72,18 +86,9 @@ async def get_all_listings_by_state(page: Page, state: str):
 
 async def main():
     async with async_playwright() as p:
+        city = input("Enter the city name: ")
         browser = await p.chromium.launch(headless=False, slow_mo=100)
         page = await browser.new_page()
         await page.goto(MERCADOLIBRE_URL)
-        searchbox = get_element_by_id(page, SEARCHBOX_HTML_ID)
-        await searchbox.fill("San Antonio de Los Altos")
-        await searchbox.press("Enter")
-        # Here is where the loop begins, basically we have to keep repeating the process while there is a next button
-        next_button = get_elements_by_classname(page, NEXT_BUTTON_HTML_CLASSNAME)
-        while (await next_button.is_visible()):
-            await page.wait_for_load_state("networkidle")
-            await get_all_listings_information(page)
-            next_button = get_elements_by_classname(page, NEXT_BUTTON_HTML_CLASSNAME)
-            await next_button.click()
-
+        await get_all_listings_by_city(page, city)
         await browser.close()
