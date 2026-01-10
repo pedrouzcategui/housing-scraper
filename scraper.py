@@ -1,6 +1,6 @@
 import asyncio
 import re
-from scraper_utils import get_element_by_id, get_elements_by_classname, scroll_to_load_all
+from scraper_utils import get_element_by_id, get_elements_by_classname, scroll_like_human
 from playwright.async_api import async_playwright, Page
 from config import *
 import random
@@ -12,6 +12,7 @@ def extract_listing_id_from_url(url: str) -> str:
 # This function scrapes detailed information from a listing page
 async def get_listing_information(page: Page):
     id = extract_listing_id_from_url(page.url)
+    await scroll_like_human(page, pause=random.uniform(1.5, 2.5), max_scrolls=4)
     title = await page.locator(f".{LISTING_TITLE_HTML_CLASSNAME}").text_content()
     type_ = await page.locator(f".{APARTMENT_OR_HOUSE_HTML_CLASSNAME}").text_content()  # It needs to be "type_" to avoid conflict with Python keyword
     price = await page.locator(f'meta[itemprop="{PRICE_META_PROPERTY}"]').get_attribute("content")
@@ -46,7 +47,7 @@ async def get_listing_information(page: Page):
 
 async def get_all_listings_information(page: Page):
     # Wait for results to appear
-    await scroll_to_load_all(page, pause=1.5, max_scrolls=40)
+    await scroll_like_human(page, pause=1.5, max_scrolls=40)
     # We select all items
     await page.wait_for_selector(f".{LISTING_ITEM_HTML_CLASSNAME}")
     listings = get_elements_by_classname(page, LISTING_ITEM_HTML_CLASSNAME)
@@ -58,18 +59,30 @@ async def get_all_listings_information(page: Page):
         if href:
             hrefs.append(href)
 
+    # for listing in await listings.all():
+    #     await listing.click(position={"x": random.uniform(20, 30), "y": random.uniform(20, 40)})
+    #     info = await get_listing_information(page)
+    #     print(f"Scraped: {info}")
+    #     delay = random.uniform(5.0, 15.0)
+    #     await asyncio.sleep(delay)
+    #     # Just for demonstration purposes, go back to listing page
+    #     await page.go_back()
+
     for href in hrefs:
         await page.goto(href)
         info = await get_listing_information(page)
         print(f"Scraped: {info}")
-        delay = random.uniform(1.0, 5.0)
+        delay = random.uniform(15.0, 20.0)
         await asyncio.sleep(delay)
         # Just for demonstration purposes, go back to listing page
         await page.go_back()
 
 async def get_all_listings_by_city(page: Page, city: str):
     searchbox = get_element_by_id(page, SEARCHBOX_HTML_ID)
-    await searchbox.fill(city)
+    await searchbox.click()
+    # The `type` method simulates typing with a delay between keystrokes
+    await page.keyboard.type(city, delay=random.randint(100, 200))
+    await asyncio.sleep(2)  # Wait for suggestions to load
     await searchbox.press("Enter")
     # Here is where the loop begins, basically we have to keep repeating the process while there is a next button
     next_button = get_elements_by_classname(page, NEXT_BUTTON_HTML_CLASSNAME)
@@ -79,7 +92,6 @@ async def get_all_listings_by_city(page: Page, city: str):
         next_button = get_elements_by_classname(page, NEXT_BUTTON_HTML_CLASSNAME)
         await next_button.click()
         await page.wait_for_load_state("networkidle")  # Wait for the next page to load
-    pass
 
 async def get_all_listings_by_state(page: Page, state: str):
     pass

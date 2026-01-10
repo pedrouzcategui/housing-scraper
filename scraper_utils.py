@@ -8,7 +8,7 @@ def get_element_by_id(page: Page, element_id: str):
 def get_elements_by_classname(page: Page, class_name: str):
     return page.locator(f".{class_name}")
 
-async def scroll_to_load_all(page: Page, pause: float = 1.5, max_scrolls: int = 30) -> None:
+async def scroll_like_human(page: Page, pause: float = 1.5, max_scrolls: int = 30) -> None:
     # This gets the scroll height of the body of the page
     previous_height = await page.evaluate("document.body.scrollHeight")
     
