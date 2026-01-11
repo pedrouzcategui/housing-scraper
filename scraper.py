@@ -1,9 +1,11 @@
 import asyncio
 import re
+from db import Database
 from scraper_utils import get_element_by_id, get_elements_by_classname, scroll_like_human
 from playwright.async_api import async_playwright, Page
 from config import *
 import random
+from models import Property
 
 def extract_listing_id_from_url(url: str) -> str:
     match = re.search(r'/MLV-(\d+)', url)
@@ -11,7 +13,7 @@ def extract_listing_id_from_url(url: str) -> str:
 
 # This function scrapes detailed information from a listing page
 async def get_listing_information(page: Page):
-    id = extract_listing_id_from_url(page.url)
+    mercadolibre_id = extract_listing_id_from_url(page.url)
     await scroll_like_human(page, pause=random.uniform(1.5, 2.5), max_scrolls=4)
     title = await page.locator(f".{LISTING_TITLE_HTML_CLASSNAME}").text_content()
     type_ = await page.locator(f".{APARTMENT_OR_HOUSE_HTML_CLASSNAME}").text_content()  # It needs to be "type_" to avoid conflict with Python keyword
@@ -33,17 +35,20 @@ async def get_listing_information(page: Page):
         elif "baños" in text:
             bathrooms = text.split()[0]
     
-    return {
-        "id": id,
-        "title": title,
-        "type": type_,
-        "price": price,
-        "listing_type": listing_type,
-        "description": description,
-        "area": area,
-        "rooms": rooms,
-        "bathrooms": bathrooms
-    }
+    # Save into the Database
+    property_obj = Property(
+        mercadolibre_listing_id=mercadolibre_id,
+        title=title,
+        p_type=type_,
+        price=float(price) if price else None,
+        listing_type=listing_type,
+        description=description,
+        area=float(area) if area else None,
+        rooms=int(rooms) if rooms else None,
+        bathrooms=int(bathrooms) if bathrooms else None
+    )
+
+    property_obj.save()
 
 async def get_all_listings_information(page: Page):
     # Wait for results to appear

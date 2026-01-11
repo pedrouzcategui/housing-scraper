@@ -5,6 +5,7 @@ load_dotenv()
 
 MERCADOLIBRE_URL = os.getenv("MERCADOLIBRE_APARTAMENTOS_URL")
 DATABASE_NAME = os.getenv("DATABASE_NAME")
+DEBUG_MODE = True
 
 SEARCHBOX_HTML_ID = "cb1-edit"
 
