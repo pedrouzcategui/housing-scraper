@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MERCADOLIBRE_URL = os.getenv("MERCADOLIBRE_APARTAMENTOS_URL")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
+
 SEARCHBOX_HTML_ID = "cb1-edit"
 
 # Listing related constants
