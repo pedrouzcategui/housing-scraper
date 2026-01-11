@@ -17,3 +17,11 @@ This app sends notifications when there are price changes and it tracks the evol
 #### Notes:
 
 - I am using `uv` as a python package manager, so commands must be run with `uv run`, and installed with `uv add`.
+
+#### RUNNING IN DEBUG MODE:
+
+If you want to run the program in DEBUG mode, use this:
+
+```powershell
+$env:PWDEBUG=1; uv run main.py
+```

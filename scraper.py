@@ -14,7 +14,7 @@ def extract_listing_id_from_url(url: str) -> str:
 # This function scrapes detailed information from a listing page
 async def get_listing_information(page: Page):
     mercadolibre_id = extract_listing_id_from_url(page.url)
-    await scroll_like_human(page, pause=random.uniform(1.5, 2.5), max_scrolls=4)
+    await scroll_like_human(page, max_scrolls=4)
     title = await page.locator(f".{LISTING_TITLE_HTML_CLASSNAME}").text_content()
     type_ = await page.locator(f".{APARTMENT_OR_HOUSE_HTML_CLASSNAME}").text_content()  # It needs to be "type_" to avoid conflict with Python keyword
     price = await page.locator(f'meta[itemprop="{PRICE_META_PROPERTY}"]').get_attribute("content")
@@ -52,7 +52,7 @@ async def get_listing_information(page: Page):
 
 async def get_all_listings_information(page: Page):
     # Wait for results to appear
-    await scroll_like_human(page, pause=1.5, max_scrolls=40)
+    await scroll_like_human(page, max_scrolls=40)
     # We select all items
     await page.wait_for_selector(f".{LISTING_ITEM_HTML_CLASSNAME}")
     listings = get_elements_by_classname(page, LISTING_ITEM_HTML_CLASSNAME)
@@ -87,16 +87,15 @@ async def get_all_listings_by_city(page: Page, city: str):
     await searchbox.click()
     # The `type` method simulates typing with a delay between keystrokes
     await page.keyboard.type(city, delay=random.randint(100, 200))
-    await asyncio.sleep(2)  # Wait for suggestions to load
+    await asyncio.sleep(3)  # Wait for suggestions to load
     await searchbox.press("Enter")
     # Here is where the loop begins, basically we have to keep repeating the process while there is a next button
     next_button = get_elements_by_classname(page, NEXT_BUTTON_HTML_CLASSNAME)
     while (await next_button.is_visible()):
-        await page.wait_for_load_state("networkidle")
         await get_all_listings_information(page)
         next_button = get_elements_by_classname(page, NEXT_BUTTON_HTML_CLASSNAME)
         await next_button.click()
-        await page.wait_for_load_state("networkidle")  # Wait for the next page to load
+        # await page.wait_for_load_state("networkidle")  # Wait for the next page to load
 
 async def get_all_listings_by_state(page: Page, state: str):
     pass
@@ -108,4 +107,4 @@ async def main():
         page = await browser.new_page()
         await page.goto(MERCADOLIBRE_URL)
         await get_all_listings_by_city(page, city)
-        await browser.close()
+        # await browser.close()

@@ -23,7 +23,7 @@ class Property:
             self.mercadolibre_listing_id, self.title, self.p_type, self.price, self.listing_type,
             self.description, self.area, self.rooms, self.bathrooms
         )
-        Database.execute(sql, params)
+        Database.execute_query(sql, params)
         print(f"Property '{self.title}' saved successfully!")
 
     @staticmethod
