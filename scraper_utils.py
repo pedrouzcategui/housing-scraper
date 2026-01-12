@@ -8,7 +8,8 @@ def get_element_by_id(page: Page, element_id: str):
 def get_elements_by_classname(page: Page, class_name: str):
     return page.locator(f".{class_name}")
 
-async def scroll_like_human(page: Page, max_scrolls: int = 30) -> None:
+async def scroll_like_human(page: Page, delay: float, max_scrolls: int = 30) -> None:
+
     # This gets the scroll height of the body of the page
     previous_height = await page.evaluate("document.body.scrollHeight")
     
@@ -24,7 +25,7 @@ async def scroll_like_human(page: Page, max_scrolls: int = 30) -> None:
         """)
 
         # 2. Wait for the smooth animation AND the network
-        await asyncio.sleep(random.uniform(1.0, 10.0))
+        await asyncio.sleep(delay)
         
         # 3. Check if we actually moved or if height grew
         new_height = await page.evaluate("document.body.scrollHeight")

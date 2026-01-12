@@ -3,6 +3,7 @@ import re
 from db import Database
 from scraper_utils import get_element_by_id, get_elements_by_classname, scroll_like_human
 from playwright.async_api import async_playwright, Page
+from playwright_stealth import Stealth
 from config import *
 import random
 from models import Property
@@ -14,7 +15,7 @@ def extract_listing_id_from_url(url: str) -> str:
 # This function scrapes detailed information from a listing page
 async def get_listing_information(page: Page):
     mercadolibre_id = extract_listing_id_from_url(page.url)
-    await scroll_like_human(page, max_scrolls=4)
+    await scroll_like_human(page, delay=random.uniform(1.0, 6.0), max_scrolls=4)
     title = await page.locator(f".{LISTING_TITLE_HTML_CLASSNAME}").text_content()
     type_ = await page.locator(f".{APARTMENT_OR_HOUSE_HTML_CLASSNAME}").text_content()  # It needs to be "type_" to avoid conflict with Python keyword
     price = await page.locator(f'meta[itemprop="{PRICE_META_PROPERTY}"]').get_attribute("content")
@@ -52,7 +53,7 @@ async def get_listing_information(page: Page):
 
 async def get_all_listings_information(page: Page):
     # Wait for results to appear
-    await scroll_like_human(page, max_scrolls=40)
+    await scroll_like_human(page,delay=random.uniform(1.0, 10.0), max_scrolls=40)
     # We select all items
     await page.wait_for_selector(f".{LISTING_ITEM_HTML_CLASSNAME}")
     listings = get_elements_by_classname(page, LISTING_ITEM_HTML_CLASSNAME)
@@ -74,6 +75,8 @@ async def get_all_listings_information(page: Page):
     #     await page.go_back()
 
     for href in hrefs:
+        await asyncio.sleep(random.uniform(3.0, 10.0))
+        # Maybe introduce scroll up here?
         await page.goto(href)
         info = await get_listing_information(page)
         print(f"Scraped: {info}")
@@ -101,10 +104,21 @@ async def get_all_listings_by_state(page: Page, state: str):
     pass
 
 async def main():
-    async with async_playwright() as p:
+    async with Stealth().use_async(async_playwright()) as p:
         city = input("Enter the city name: ")
         browser = await p.chromium.launch(headless=False, slow_mo=100)
-        page = await browser.new_page()
+        # WTF is context?
+        context = await browser.new_context()
+
+        # Read more about this
+        context.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined
+                })
+            """)
+
+        page = await context.new_page()
+        
         await page.goto(MERCADOLIBRE_URL)
         await get_all_listings_by_city(page, city)
         # await browser.close()
