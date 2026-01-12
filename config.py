@@ -7,6 +7,9 @@ MERCADOLIBRE_URL = os.getenv("MERCADOLIBRE_APARTAMENTOS_URL")
 DATABASE_NAME = os.getenv("DATABASE_NAME")
 DEBUG_MODE = True
 
+LOG_DIR = os.getenv("LOG_DIR", "logs")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
 SEARCHBOX_HTML_ID = "cb1-edit"
 
 # Listing related constants

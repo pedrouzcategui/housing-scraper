@@ -1,5 +1,7 @@
 import sqlite3
-from config import *
+
+from config import DATABASE_NAME
+from logging_utils import logger
 
 class Database:
 
@@ -23,15 +25,17 @@ class Database:
 
     @staticmethod
     def execute_query(sql, params=None):
-        # The 'with' block ensures the connection closes automatically
-        with sqlite3.connect(DATABASE_NAME) as conn:
-            cur = conn.cursor()
-            if params:
-                cur.execute(sql, params)
-            else:
-                cur.execute(sql)
-            # Changes are auto-committed here if no error occurs
-            return cur.fetchall()
+        try:
+            with sqlite3.connect(DATABASE_NAME) as conn:
+                cur = conn.cursor()
+                if params:
+                    cur.execute(sql, params)
+                else:
+                    cur.execute(sql)
+                return cur.fetchall()
+        except Exception:
+            logger.exception("Database query failed", extra={"sql": sql, "params": params})
+            raise
 
     @staticmethod
     def initialize_fresh():
@@ -42,4 +46,4 @@ class Database:
         # 2. Create the table fresh
         # This ensures your SQL structure matches your Python Model
         Database.initialize_database()
-        print("Database initialized: Table 'properties' is fresh and empty.")
+        logger.info("Database initialized: Table 'properties' recreated")
