@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
@@ -71,7 +71,7 @@ async def log_failure(
         try:
             os.makedirs(_LOG_DIR, exist_ok=True)
             html_content = await page.content()
-            timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
             html_path = os.path.join(_LOG_DIR, f"failure_{timestamp}.html")
             with open(html_path, "w", encoding="utf-8") as snapshot:
                 snapshot.write(html_content)

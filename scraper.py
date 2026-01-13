@@ -22,10 +22,14 @@ from config import (
 )
 from logging_utils import log_failure, logger, setup_logger
 from models import Property
+import json
+import os
+from datetime import datetime, timezone
 from scraper_utils import (
     get_element_by_id,
     get_elements_by_classname,
     scroll_like_human,
+    get_current_page_number,
 )
 
 def extract_listing_id_from_url(url: str) -> str:
@@ -36,6 +40,10 @@ def extract_listing_id_from_url(url: str) -> str:
 async def get_listing_information(page: Page):
     try:
         mercadolibre_id = extract_listing_id_from_url(page.url)
+        
+        # before scrolling
+        logger.info("Scrolling listings on page...")
+        
         await scroll_like_human(page, delay=random.uniform(1.0, 6.0), max_scrolls=4)
         title = await page.locator(f".{LISTING_TITLE_HTML_CLASSNAME}").text_content()
         type_ = await page.locator(f".{APARTMENT_OR_HOUSE_HTML_CLASSNAME}").text_content()
@@ -73,6 +81,7 @@ async def get_listing_information(page: Page):
 
         property_obj.save()
         logger.info("Saved listing %s", mercadolibre_id)
+        logger.info("Finished scraping listing %s", mercadolibre_id)
         return property_obj
     except Exception as exc:
         await log_failure(
@@ -95,6 +104,10 @@ async def get_all_listings_information(page: Page):
         if href:
             hrefs.append(href)
 
+    # Pretty-print to console
+    print(len(hrefs), "listings found on current page:")
+    await page.pause()
+
     logger.info("Collected %s listing hrefs", len(hrefs))
 
     for href in hrefs:
@@ -106,6 +119,7 @@ async def get_all_listings_information(page: Page):
             logger.info("Visiting %s", href)
             info = await get_listing_information(page)
             if info:
+                logger.info("Finished scraping listing %s (%s)", info.mercadolibre_listing_id, href)
                 logger.debug("Scraped listing %s", info.mercadolibre_listing_id)
         except Exception as exc:
             await log_failure(page, href, exc, {"step": "get_all_listings_information"})
@@ -133,8 +147,9 @@ async def get_all_listings_by_city(page: Page, city: str):
         searchbox = get_element_by_id(page, SEARCHBOX_HTML_ID)
         await searchbox.click()
         await page.keyboard.type(city, delay=random.randint(100, 200))
-        await asyncio.sleep(3)
+        await asyncio.sleep(random.uniform(3.0, 6.0))
         await searchbox.press("Enter")
+        await page.wait_for_selector(f".{LISTING_ITEM_HTML_CLASSNAME}")  # Wait for listings to load
 
         while True:
             await get_all_listings_information(page)
@@ -144,7 +159,7 @@ async def get_all_listings_by_city(page: Page, city: str):
                 break
             await next_button.click()
             logger.debug("Navigated to next page for city '%s'", city)
-            await page.wait_for_load_state("networkidle")
+            await page.wait_for_load_state("networkidle")  # Keep for pagination, or replace with selector if needed
     except Exception as exc:
         await log_failure(page, page.url if page else None, exc, {"city": city, "step": "get_all_listings_by_city"})
         if DEBUG_MODE:
@@ -160,7 +175,7 @@ async def main():
         logger.info("Launching browser for city '%s'", city)
         browser = await playwright_instance.chromium.launch(headless=False, slow_mo=100)
         context = await browser.new_context()
-        context.add_init_script(
+        await context.add_init_script(
             """
                 Object.defineProperty(navigator, 'webdriver', {
                 get: () => undefined
@@ -180,3 +195,11 @@ async def main():
         finally:
             await browser.close()
             logger.info("Browser closed for city '%s'", city)
+            
+            # Explicitly flush handlers
+            for handler in logger.handlers:
+                try:
+                    handler.flush()
+                    handler.close()
+                except Exception:
+                    pass

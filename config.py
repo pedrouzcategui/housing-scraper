@@ -3,9 +3,31 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def _parse_bool_env(value: str) -> bool:
+	v = (value or "").strip().lower()
+	if v in {"1", "true", "yes", "on"}:
+		return True
+	if v in {"0", "false", "no", "off"}:
+		return False
+	raise ValueError(f"Unrecognized boolean value: {value!r}")
+
+
+def _get_bool_env(*names: str, default: bool = False) -> bool:
+	for name in names:
+		raw = os.getenv(name)
+		if raw is None:
+			continue
+		try:
+			return _parse_bool_env(raw)
+		except ValueError:
+			# Keep behavior predictable: if user set something weird, fall back.
+			return default
+	return default
+
 MERCADOLIBRE_URL = os.getenv("MERCADOLIBRE_APARTAMENTOS_URL")
 DATABASE_NAME = os.getenv("DATABASE_NAME")
-DEBUG_MODE = True
+DEBUG_MODE = _get_bool_env("DEBUG_MODE", "PWDEBUG", default=False)
 
 LOG_DIR = os.getenv("LOG_DIR", "logs")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

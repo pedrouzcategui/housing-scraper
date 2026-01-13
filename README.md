@@ -25,3 +25,5 @@ If you want to run the program in DEBUG mode, use this:
 ```powershell
 $env:PWDEBUG=1; uv run main.py
 ```
+
+In debug mode the app will recreate the SQLite table on startup and re-raise scrape exceptions after logging.

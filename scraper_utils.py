@@ -55,3 +55,38 @@ async def scroll_like_human(
             break
             
         previous_height = new_height
+
+async def get_current_page_number(page: Page) -> str:
+    # Try common DOM selectors first
+    selectors = [
+        'button[aria-current="true"]',
+        'li[aria-current="page"]',
+        '.andes-pagination__button--current',
+        '.andes-pagination__button--selected'
+    ]
+    for sel in selectors:
+        try:
+            el = page.locator(sel)
+            if await el.count() > 0:
+                txt = (await el.first.text_content()).strip()
+                if txt:
+                    return txt
+        except Exception:
+            pass
+
+    # Fallback: parse URL for common pagination params (page, Desde/offset)
+    import re
+    url = page.url or ""
+    m = re.search(r'(?:[?&]p=(\d+))', url)
+    if m:
+        return m.group(1)
+    m = re.search(r'(?:_Desde_?=?(\d+))', url)
+    if m:
+        # MercadoLibre uses offsets sometimes — compute approximate page
+        try:
+            offset = int(m.group(1))
+            per_page = 50  # adjust if your search shows different results per page
+            return str(offset // per_page + 1)
+        except Exception:
+            return m.group(1)
+    return "unknown"
