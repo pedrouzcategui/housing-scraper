@@ -15,3 +15,6 @@ wheels/
 # Learning Files
 LEARNING.md
 TODOS.md
+
+# DB files
+properties.db
