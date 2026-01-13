@@ -17,6 +17,6 @@ LEARNING.md
 TODOS.md
 
 # DB files
-properties.dbO
+*.db
 
 logs/
