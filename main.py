@@ -15,7 +15,6 @@ def bootstrap():
     os.environ['DATABASE_NAME'] = db_name
     
     if DEBUG_MODE:
-        print("Running in DEBUG MODE")
         Database.initialize_fresh()
     asyncio.run(main(city))
 

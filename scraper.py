@@ -106,7 +106,6 @@ async def get_all_listings_information(page: Page):
 
     # Pretty-print to console
     print(len(hrefs), "listings found on current page:")
-    await page.pause()
 
     logger.info("Collected %s listing hrefs", len(hrefs))
 
@@ -168,10 +167,9 @@ async def get_all_listings_by_city(page: Page, city: str):
 async def get_all_listings_by_state(page: Page, state: str):
     pass
 
-async def main():
+async def main(city: str):
     setup_logger(LOG_DIR, LOG_LEVEL)
     async with Stealth().use_async(async_playwright()) as playwright_instance:
-        city = input("Enter the city name: ")
         logger.info("Launching browser for city '%s'", city)
         browser = await playwright_instance.chromium.launch(headless=False, slow_mo=100)
         context = await browser.new_context()
