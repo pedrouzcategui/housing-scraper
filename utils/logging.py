@@ -26,6 +26,7 @@ async def log_failure(
     extra: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Capture context when scraping fails; print and save HTML + screenshot."""
+    from utils.console import console
     context: Dict[str, Any] = {"href": href}
 
     page_url = None
@@ -47,17 +48,17 @@ async def log_failure(
             with open(html_path, "w", encoding="utf-8") as snapshot:
                 snapshot.write(html_content)
         except Exception as html_exc:
-            print(f"Warning: Unable to capture HTML snapshot: {html_exc}")
+            console.print(f"[yellow]Warning:[/] Unable to capture HTML snapshot: {html_exc}")
         try:
             screenshot_path = os.path.join(_LOG_DIR, f"failure_{timestamp}.png")
             await page.screenshot(path=screenshot_path, full_page=True)
         except Exception as shot_exc:
-            print(f"Warning: Unable to capture screenshot: {shot_exc}")
+            console.print(f"[yellow]Warning:[/] Unable to capture screenshot: {shot_exc}")
     context["html_snapshot"] = html_path
     context["screenshot"] = screenshot_path
 
     if extra:
         context.update(extra)
 
-    print("Scrape failure:", context)
-    print("Error:", exc)
+    console.print("[red]Scrape failure:[/]", context)
+    console.print("[red]Error:[/]", exc)

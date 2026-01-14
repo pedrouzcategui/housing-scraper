@@ -1,4 +1,5 @@
 from .db import Database
+from utils.console import console
 
 class Property:
     def __init__(
@@ -41,9 +42,9 @@ class Property:
         )
         try:
             Database.execute_query(sql, params)
-            print(f"Property '{self.title}' saved successfully")
+            console.print(f"[green]Property saved:[/] '{self.title}'")
         except Exception:
-            print(f"Failed to save property {self.mercadolibre_listing_id}")
+            console.print(f"[red]Failed to save property[/] {self.mercadolibre_listing_id}")
             raise
 
     @staticmethod
@@ -52,6 +53,6 @@ class Property:
         try:
             rows = Database.execute_query("SELECT * FROM properties")
         except Exception:
-            print("Failed to fetch properties")
+            console.print("[red]Failed to fetch properties[/]")
             raise
         return [Property(*row[1:], id=row[0]) for row in rows]

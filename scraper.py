@@ -22,6 +22,7 @@ from config import (
     MAP_IMAGE,
 )
 from utils.logging import log_failure, setup_logger
+from utils.console import console
 from db.models import Property
 from utils.scraper import (
     get_element_by_id,
@@ -40,7 +41,7 @@ async def get_listing_information(page: Page):
         mercadolibre_id = extract_listing_id_from_url(page.url)
         
         # before scrolling
-        print("Scrolling listings on page...")
+        console.print("[italic]Scrolling listings on page...[/]")
         
         await scroll_like_human(page, delay=random.uniform(1.0, 6.0), max_scrolls=4)
         title = await page.locator(f".{LISTING_TITLE_HTML_CLASSNAME}").text_content()
@@ -83,8 +84,8 @@ async def get_listing_information(page: Page):
         )
 
         property_obj.save()
-        print(f"Saved listing {mercadolibre_id}")
-        print(f"Finished scraping listing {mercadolibre_id}")
+        console.print(f"[green]Saved listing[/] [bold]{mercadolibre_id}[/]")
+        console.print(f"[green]Finished scraping listing[/] [bold]{mercadolibre_id}[/]")
         return property_obj
     except Exception as exc:
         await log_failure(
@@ -108,9 +109,8 @@ async def get_all_listings_information(page: Page):
             hrefs.append(href)
 
     # Pretty-print to console
-    print(len(hrefs), "listings found on current page:")
-
-    print(f"Collected {len(hrefs)} listing hrefs")
+    console.print(f"[cyan]{len(hrefs)} listings found on current page[/]")
+    console.print(f"[cyan]Collected {len(hrefs)} listing hrefs[/]")
 
     for href in hrefs:
         await asyncio.sleep(random.uniform(3.0, 10.0))
@@ -118,11 +118,11 @@ async def get_all_listings_information(page: Page):
         try:
             await page.goto(href)
             navigated = True
-            print(f"Visiting {href}")
+            console.print(f"[magenta]Visiting[/] {href}")
             info = await get_listing_information(page)
             if info:
-                print(f"Finished scraping listing {info.mercadolibre_listing_id} ({href})")
-                print(f"Scraped listing {info.mercadolibre_listing_id}")
+                console.print(f"[green]Finished scraping listing[/] {info.mercadolibre_listing_id} ({href})")
+                console.print(f"[green]Scraped listing[/] {info.mercadolibre_listing_id}")
         except Exception as exc:
             await log_failure(page, href, exc, {"step": "get_all_listings_information"})
             if DEBUG_MODE:
@@ -144,7 +144,7 @@ async def get_all_listings_information(page: Page):
                         raise
 
 async def get_all_listings_by_city(page: Page, city: str):
-    print(f"Starting search for this city: {city}")
+    console.print(f"[bold]Starting search for city[/]: {city}")
     try:
         searchbox = get_element_by_id(page, SEARCHBOX_HTML_ID)
         await searchbox.click()
@@ -157,10 +157,10 @@ async def get_all_listings_by_city(page: Page, city: str):
             await get_all_listings_information(page)
             next_button = get_elements_by_classname(page, NEXT_BUTTON_HTML_CLASSNAME)
             if not await next_button.is_visible():
-                print(f"No more pages for city '{city}'")
+                console.print(f"[yellow]No more pages for city[/] '{city}'")
                 break
             await next_button.click()
-            print(f"Navigated to next page for city: '{city}'")
+            console.print(f"[blue]Navigated to next page for city[/]: '{city}'")
             await page.wait_for_load_state("networkidle")  # Keep for pagination, or replace with selector if needed
     except Exception as exc:
         print(f"Error in get_all_listings_by_city for city '{city}': {exc}")
@@ -173,7 +173,7 @@ async def get_all_listings_by_state(page: Page, state: str):
 async def main(city: str):
     setup_logger(LOG_DIR, LOG_LEVEL)
     async with Stealth().use_async(async_playwright()) as playwright_instance:
-        print(f"Launching browser for city '{city}'")
+        console.print(f"[bold]Launching browser for city[/] '{city}'")
         browser = await playwright_instance.chromium.launch(headless=False, slow_mo=100)
         context = await browser.new_context()
         await context.add_init_script(
@@ -187,14 +187,14 @@ async def main(city: str):
         page = await context.new_page()
         try:
             await page.goto(MERCADOLIBRE_URL)
-            print(f"Opened search page: {MERCADOLIBRE_URL}")
+            console.print(f"[blue]Opened search page[/]: {MERCADOLIBRE_URL}")
             await get_all_listings_by_city(page, city)
         except Exception as exc:
-            print(f"Error in main for city '{city}': {exc}")
+            console.print(f"[red]Error in main for city[/] '{city}': {exc}")
             if DEBUG_MODE:
                 raise
         finally:
             await browser.close()
-            print(f"Browser closed for city '{city}'")
+            console.print(f"[blue]Browser closed for city[/] '{city}'")
             
             # Logging handlers flush removed; using prints now

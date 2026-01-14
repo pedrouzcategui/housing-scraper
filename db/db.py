@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from utils.console import console
 
 class Database:
 
@@ -41,8 +42,8 @@ class Database:
                     cur.execute(sql)
                 return cur.fetchall()
         except Exception as exc:
-            print("Database query failed", {"sql": sql, "params": params})
-            print("Error:", exc)
+            console.print("[red]Database query failed[/]", {"sql": sql, "params": params})
+            console.print("[red]Error:[/]", exc)
             raise
 
     @staticmethod
@@ -54,4 +55,4 @@ class Database:
         # 2. Create the table fresh
         # This ensures your SQL structure matches your Python Model
         Database.initialize_database()
-        print("Database initialized: Table 'properties' recreated")
+        console.print("[green]Database initialized:[/] Table 'properties' recreated")

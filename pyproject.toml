@@ -9,4 +9,5 @@ dependencies = [
     "playwright>=1.57.0",
     "playwright-stealth>=2.0.0",
     "pytest-playwright>=0.7.2",
+    "rich>=14.2.0",
 ]

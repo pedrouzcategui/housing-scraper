@@ -1,6 +1,7 @@
 import asyncio
 import random
 from playwright.async_api import Page
+from utils.console import console
 
 def get_element_by_id(page: Page, element_id: str):
     return page.locator(f"#{element_id}").first
@@ -39,7 +40,7 @@ async def scroll_like_human(
             # Check if we've reached the top of the page
             current_scroll_pos = await page.evaluate("window.pageYOffset")
             if current_scroll_pos <= 0:
-                print("Reached the top of the page.")
+                console.print("[blue]Reached the top of the page.[/]")
                 break
             continue
 
@@ -51,7 +52,7 @@ async def scroll_like_human(
 
         # Logic: If height hasn't changed AND we are at the bottom, we are done
         if new_height == previous_height and current_scroll_pos >= new_height:
-            print("Reached the end of the page.")
+            console.print("[blue]Reached the end of the page.[/]")
             break
             
         previous_height = new_height
