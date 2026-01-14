@@ -1,8 +1,21 @@
-from db import Database
-from logging_utils import logger
+from .db import Database
 
 class Property:
-    def __init__(self, mercadolibre_listing_id, title, p_type, price, listing_type, description, area, rooms, bathrooms, id=None):
+    def __init__(
+        self,
+        mercadolibre_listing_id,
+        title,
+        p_type,
+        price,
+        listing_type,
+        description,
+        area,
+        rooms,
+        bathrooms,
+        latitude=None,
+        longitude=None,
+        id=None,
+    ):
         self.id = id
         self.mercadolibre_listing_id = mercadolibre_listing_id
         self.title = title
@@ -13,6 +26,8 @@ class Property:
         self.area = area
         self.rooms = rooms
         self.bathrooms = bathrooms
+        self.latitude = latitude
+        self.longitude = longitude
 
     def save(self):
         """Inserts the current property object into the database."""
@@ -26,11 +41,9 @@ class Property:
         )
         try:
             Database.execute_query(sql, params)
-            logger.info("Property '%s' saved successfully", self.title)
+            print(f"Property '{self.title}' saved successfully")
         except Exception:
-            logger.exception(
-                "Failed to save property %s", self.mercadolibre_listing_id
-            )
+            print(f"Failed to save property {self.mercadolibre_listing_id}")
             raise
 
     @staticmethod
@@ -39,6 +52,6 @@ class Property:
         try:
             rows = Database.execute_query("SELECT * FROM properties")
         except Exception:
-            logger.exception("Failed to fetch properties")
+            print("Failed to fetch properties")
             raise
         return [Property(*row[1:], id=row[0]) for row in rows]

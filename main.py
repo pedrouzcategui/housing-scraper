@@ -1,13 +1,9 @@
 import os
-import unicodedata
 import asyncio
 from scraper import main
 from config import DEBUG_MODE
-from db import Database
-
-def to_snake_case(text):
-    normalized = unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode('ascii')
-    return ''.join(c if c.isalnum() or c == '_' else '_' for c in normalized.lower().replace(' ', '_').replace('-', '_'))
+from db.db import Database
+from utils.strings import to_snake_case
 
 def bootstrap():
     city = input("Enter the city name: ")
@@ -16,6 +12,9 @@ def bootstrap():
     
     if DEBUG_MODE:
         Database.initialize_fresh()
+    else:
+        # Ensure the database/table exists for non-debug runs
+        Database.initialize_database()
     asyncio.run(main(city))
 
 if __name__ == "__main__":

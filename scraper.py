@@ -19,17 +19,15 @@ from config import (
     PRICE_META_PROPERTY,
     SEARCHBOX_HTML_ID,
     SPECS_CONTAINER_CLASSNAME,
+    MAP_IMAGE,
 )
-from logging_utils import log_failure, logger, setup_logger
-from models import Property
-import json
-import os
-from datetime import datetime, timezone
-from scraper_utils import (
+from utils.logging import log_failure, setup_logger
+from db.models import Property
+from utils.scraper import (
     get_element_by_id,
     get_elements_by_classname,
     scroll_like_human,
-    get_current_page_number,
+    extract_coordinates_from_staticmap,
 )
 
 def extract_listing_id_from_url(url: str) -> str:
@@ -42,7 +40,7 @@ async def get_listing_information(page: Page):
         mercadolibre_id = extract_listing_id_from_url(page.url)
         
         # before scrolling
-        logger.info("Scrolling listings on page...")
+        print("Scrolling listings on page...")
         
         await scroll_like_human(page, delay=random.uniform(1.0, 6.0), max_scrolls=4)
         title = await page.locator(f".{LISTING_TITLE_HTML_CLASSNAME}").text_content()
@@ -67,6 +65,9 @@ async def get_listing_information(page: Page):
             elif "baños" in text:
                 bathrooms = text.split()[0]
 
+        # Extract optional coordinates from the static map image
+        lat, lon = await extract_coordinates_from_staticmap(page, MAP_IMAGE)
+
         property_obj = Property(
             mercadolibre_listing_id=mercadolibre_id,
             title=title,
@@ -77,11 +78,13 @@ async def get_listing_information(page: Page):
             area=float(area) if area else None,
             rooms=int(rooms) if rooms else None,
             bathrooms=int(bathrooms) if bathrooms else None,
+            latitude=lat,
+            longitude=lon,
         )
 
         property_obj.save()
-        logger.info("Saved listing %s", mercadolibre_id)
-        logger.info("Finished scraping listing %s", mercadolibre_id)
+        print(f"Saved listing {mercadolibre_id}")
+        print(f"Finished scraping listing {mercadolibre_id}")
         return property_obj
     except Exception as exc:
         await log_failure(
@@ -107,7 +110,7 @@ async def get_all_listings_information(page: Page):
     # Pretty-print to console
     print(len(hrefs), "listings found on current page:")
 
-    logger.info("Collected %s listing hrefs", len(hrefs))
+    print(f"Collected {len(hrefs)} listing hrefs")
 
     for href in hrefs:
         await asyncio.sleep(random.uniform(3.0, 10.0))
@@ -115,11 +118,11 @@ async def get_all_listings_information(page: Page):
         try:
             await page.goto(href)
             navigated = True
-            logger.info("Visiting %s", href)
+            print(f"Visiting {href}")
             info = await get_listing_information(page)
             if info:
-                logger.info("Finished scraping listing %s (%s)", info.mercadolibre_listing_id, href)
-                logger.debug("Scraped listing %s", info.mercadolibre_listing_id)
+                print(f"Finished scraping listing {info.mercadolibre_listing_id} ({href})")
+                print(f"Scraped listing {info.mercadolibre_listing_id}")
         except Exception as exc:
             await log_failure(page, href, exc, {"step": "get_all_listings_information"})
             if DEBUG_MODE:
@@ -141,7 +144,7 @@ async def get_all_listings_information(page: Page):
                         raise
 
 async def get_all_listings_by_city(page: Page, city: str):
-    logger.info("Starting search for city '%s'", city)
+    print(f"Starting search for this city: {city}")
     try:
         searchbox = get_element_by_id(page, SEARCHBOX_HTML_ID)
         await searchbox.click()
@@ -154,13 +157,13 @@ async def get_all_listings_by_city(page: Page, city: str):
             await get_all_listings_information(page)
             next_button = get_elements_by_classname(page, NEXT_BUTTON_HTML_CLASSNAME)
             if not await next_button.is_visible():
-                logger.info("No more pages for city '%s'", city)
+                print(f"No more pages for city '{city}'")
                 break
             await next_button.click()
-            logger.debug("Navigated to next page for city '%s'", city)
+            print(f"Navigated to next page for city: '{city}'")
             await page.wait_for_load_state("networkidle")  # Keep for pagination, or replace with selector if needed
     except Exception as exc:
-        await log_failure(page, page.url if page else None, exc, {"city": city, "step": "get_all_listings_by_city"})
+        print(f"Error in get_all_listings_by_city for city '{city}': {exc}")
         if DEBUG_MODE:
             raise
 
@@ -170,7 +173,7 @@ async def get_all_listings_by_state(page: Page, state: str):
 async def main(city: str):
     setup_logger(LOG_DIR, LOG_LEVEL)
     async with Stealth().use_async(async_playwright()) as playwright_instance:
-        logger.info("Launching browser for city '%s'", city)
+        print(f"Launching browser for city '{city}'")
         browser = await playwright_instance.chromium.launch(headless=False, slow_mo=100)
         context = await browser.new_context()
         await context.add_init_script(
@@ -184,20 +187,14 @@ async def main(city: str):
         page = await context.new_page()
         try:
             await page.goto(MERCADOLIBRE_URL)
-            logger.info("Opened search page: %s", MERCADOLIBRE_URL)
+            print(f"Opened search page: {MERCADOLIBRE_URL}")
             await get_all_listings_by_city(page, city)
         except Exception as exc:
-            await log_failure(page, page.url if page else None, exc, {"city": city, "step": "main"})
+            print(f"Error in main for city '{city}': {exc}")
             if DEBUG_MODE:
                 raise
         finally:
             await browser.close()
-            logger.info("Browser closed for city '%s'", city)
+            print(f"Browser closed for city '{city}'")
             
-            # Explicitly flush handlers
-            for handler in logger.handlers:
-                try:
-                    handler.flush()
-                    handler.close()
-                except Exception:
-                    pass
+            # Logging handlers flush removed; using prints now
