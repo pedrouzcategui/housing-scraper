@@ -30,6 +30,7 @@ from utils.scraper import (
     scroll_like_human,
     extract_coordinates_from_staticmap,
 )
+from network_usage import NetworkUsage
 
 def extract_listing_id_from_url(url: str) -> str:
     match = re.search(r'/MLV-(\d+)', url)
@@ -185,6 +186,10 @@ async def main(city: str):
         )
 
         page = await context.new_page()
+        # Attach network usage tracker
+        net = NetworkUsage()
+        net.attach(page)
+
         try:
             await page.goto(MERCADOLIBRE_URL)
             console.print(f"[blue]Opened search page[/]: {MERCADOLIBRE_URL}")
@@ -196,5 +201,11 @@ async def main(city: str):
         finally:
             await browser.close()
             console.print(f"[blue]Browser closed for city[/] '{city}'")
-            
+            snap = net.snapshot()
+            console.print(
+                f"[cyan]Estimated proxy data[/] "
+                f"inbound={snap['inbound_mb']} MB, "
+                f"outbound={snap['outbound_mb']} MB, "
+                f"total≈{snap['total_gb']} GB"
+            )
             # Logging handlers flush removed; using prints now
