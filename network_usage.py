@@ -1,4 +1,3 @@
-from typing import Optional
 from playwright.async_api import Page, Request, Response
 
 BYTES_PER_GB = 1024 * 1024 * 1024
@@ -17,9 +16,9 @@ class NetworkUsage:
         # Prefer Content-Length; chunked responses may not have it.
         try:
             headers = resp.headers or {}
-            clen = headers.get("content-length") or headers.get("Content-Length")
-            if clen:
-                self.inbound_bytes += int(clen)
+            content_length = headers.get("content-length") or headers.get("Content-Length")
+            if content_length:
+                self.inbound_bytes += int(content_length)
         except Exception:
             # Best-effort; ignore if header missing or malformed.
             pass

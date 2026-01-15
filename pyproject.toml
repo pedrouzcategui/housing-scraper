@@ -8,6 +8,15 @@ dependencies = [
     "dotenv>=0.9.9",
     "playwright>=1.57.0",
     "playwright-stealth>=2.0.0",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
     "pytest-playwright>=0.7.2",
     "rich>=14.2.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "integration: requires a real browser / external network",
 ]
