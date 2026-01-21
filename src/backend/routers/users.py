@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
+from backend.auth.security import hash_password
+from backend.middlewares.logged_in import require_user
 from db.models import User, UserCreate, UserRead, UserUpdate
 from db.session import get_session
 
@@ -12,7 +14,11 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def create_user(*, session: Session = Depends(get_session), payload: UserCreate):
-    user = User(name=payload.name, email=payload.email, password=payload.password)
+    user = User(
+        name=payload.name,
+        email=payload.email,
+        password=hash_password(payload.password),
+    )
 
     session.add(user)
     try:
@@ -32,6 +38,7 @@ def create_user(*, session: Session = Depends(get_session), payload: UserCreate)
 def list_users(
     *,
     session: Session = Depends(get_session),
+    _current_user: User = Depends(require_user),
     skip: int = 0,
     limit: int = 100,
 ):
@@ -51,6 +58,7 @@ def get_user(*, session: Session = Depends(get_session), user_id: int):
 def update_user(
     *,
     session: Session = Depends(get_session),
+    _current_user: User = Depends(require_user),
     user_id: int,
     payload: UserUpdate,
 ):
@@ -59,6 +67,8 @@ def update_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     updates = payload.model_dump(exclude_unset=True)
+    if "password" in updates and updates["password"]:
+        updates["password"] = hash_password(updates["password"])
     for key, value in updates.items():
         setattr(user, key, value)
 
@@ -77,7 +87,12 @@ def update_user(
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(*, session: Session = Depends(get_session), user_id: int):
+def delete_user(
+    *,
+    session: Session = Depends(get_session),
+    _current_user: User = Depends(require_user),
+    user_id: int,
+):
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -85,3 +100,4 @@ def delete_user(*, session: Session = Depends(get_session), user_id: int):
     session.delete(user)
     session.commit()
     return None
+
