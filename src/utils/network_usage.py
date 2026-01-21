@@ -36,14 +36,22 @@ class NetworkUsage:
         page.on("request", lambda q: self.add_outbound_from_request(q))
 
     def snapshot(self) -> dict:
+        bytes_per_kb = 1024
+
+        inbound_total_bytes = self.inbound_bytes
+        outbound_total_bytes = self.outbound_bytes
+        total_bytes = inbound_total_bytes + outbound_total_bytes
+
+        def as_units(value_bytes: int) -> dict:
+            return {
+                "bytes": value_bytes,
+                "kilobytes": round(value_bytes / bytes_per_kb, 2),
+                "megabytes": round(value_bytes / BYTES_PER_MB, 2),
+                "gigabytes": round(value_bytes / BYTES_PER_GB, 4),
+            }
+
         return {
-            "inbound_bytes": self.inbound_bytes,
-            "outbound_bytes": self.outbound_bytes,
-            "inbound_mb": round(self.inbound_bytes / BYTES_PER_MB, 2),
-            "outbound_mb": round(self.outbound_bytes / BYTES_PER_MB, 2),
-            "inbound_gb": round(self.inbound_bytes / BYTES_PER_GB, 4),
-            "outbound_gb": round(self.outbound_bytes / BYTES_PER_GB, 4),
-            "total_gb": round(
-                (self.inbound_bytes + self.outbound_bytes) / BYTES_PER_GB, 4
-            ),
+            "inbound": as_units(inbound_total_bytes),
+            "outbound": as_units(outbound_total_bytes),
+            "total": as_units(total_bytes),
         }

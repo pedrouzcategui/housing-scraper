@@ -1,9 +1,9 @@
 import os
 import asyncio
-from scraper import main
-from config import DEBUG_MODE
-from db.db import Database
-from utils.strings import to_snake_case
+from src.scraper import main
+from src.config import DEBUG_MODE
+from src.db.db import Database
+from src.utils.strings import to_snake_case
 
 def bootstrap():
     city = input("Enter the city name: ")

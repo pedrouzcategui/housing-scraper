@@ -5,7 +5,7 @@ import re
 from playwright.async_api import Page, async_playwright
 from playwright_stealth import Stealth
 
-from config import (
+from src.config import (
     APARTMENT_OR_HOUSE_HTML_CLASSNAME,
     DEBUG_MODE,
     LISTING_DESCRIPTION_HTML_CLASSNAME,
@@ -30,7 +30,7 @@ from utils.scraper import (
     scroll_like_human,
     extract_coordinates_from_staticmap,
 )
-from network_usage import NetworkUsage
+from src.utils.network_usage import NetworkUsage
 
 def extract_listing_id_from_url(url: str) -> str:
     match = re.search(r'/MLV-(\d+)', url)
