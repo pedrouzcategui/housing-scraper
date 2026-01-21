@@ -1,6 +1,6 @@
 import pytest
 
-from utils.scraper import (
+from src.utils.scraper import (
     extract_coordinates_from_staticmap,
     get_current_page_number,
     get_element_by_id,

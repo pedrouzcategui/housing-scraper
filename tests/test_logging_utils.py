@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-import utils.logging as logging_utils
+import src.utils.logging as logging_utils
 
 
 class FakePage:

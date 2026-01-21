@@ -5,7 +5,7 @@ import re
 from playwright.async_api import Page, async_playwright
 from playwright_stealth import Stealth
 
-from src.config import (
+from src.scraper.config import (
     APARTMENT_OR_HOUSE_HTML_CLASSNAME,
     DEBUG_MODE,
     LISTING_DESCRIPTION_HTML_CLASSNAME,

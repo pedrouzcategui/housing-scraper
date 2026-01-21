@@ -1,7 +1,7 @@
 import os
 import asyncio
-from src.scraper import main
-from src.config import DEBUG_MODE
+from src.scraper.scraper import main
+from src.scraper.config import DEBUG_MODE
 from src.db.db import Database
 from src.utils.strings import to_snake_case
 

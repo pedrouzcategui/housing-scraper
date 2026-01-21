@@ -1,6 +1,6 @@
 import pytest
 
-from utils.strings import to_snake_case
+from src.utils.strings import to_snake_case
 
 
 def test_to_snake_case_strips_accents_and_lowercases():
