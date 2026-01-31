@@ -26,7 +26,6 @@ def _get_bool_env(*names: str, default: bool = False) -> bool:
 	return default
 
 MERCADOLIBRE_URL = os.getenv("MERCADOLIBRE_APARTAMENTOS_URL")
-DATABASE_NAME = os.getenv("DATABASE_NAME")
 DEBUG_MODE = _get_bool_env("DEBUG_MODE", "PWDEBUG", default=False)
 
 LOG_DIR = os.getenv("LOG_DIR", "logs")

@@ -1,8 +1,8 @@
-from .property import Property
+from .property import Listing
 from .user import User, UserCreate, UserRead, UserUpdate
 
 __all__ = [
-    "Property",
+    "Listing",
     "User",
     "UserCreate",
     "UserRead",

@@ -1,0 +1,34 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "alembicMessage",
+      "type": "promptString",
+      "description": "Alembic migration message",
+      "default": "describe change"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "db:migrate (alembic upgrade head)",
+      "type": "shell",
+      "command": "uv",
+      "args": ["run", "alembic", "upgrade", "head"],
+      "isBackground": false
+    },
+    {
+      "label": "db:revision (autogenerate)",
+      "type": "shell",
+      "command": "uv",
+      "args": [
+        "run",
+        "alembic",
+        "revision",
+        "--autogenerate",
+        "-m",
+        "${input:alembicMessage}"
+      ],
+      "isBackground": false
+    }
+  ]
+}

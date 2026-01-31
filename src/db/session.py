@@ -4,7 +4,13 @@ import os
 from pathlib import Path
 from typing import Generator, Optional
 
+from alembic import command
+from alembic.config import Config
+from dotenv import load_dotenv
 from sqlmodel import Session, SQLModel, create_engine
+
+# Ensure DATABASE_URL from .env is available for CLI tools (Alembic) and app code.
+load_dotenv()
 
 _engine = None
 _engine_url: Optional[str] = None
@@ -15,10 +21,13 @@ def _build_database_url() -> str:
     if url:
         return url
 
+    # PostgreSQL is the default backend. Require DATABASE_URL for normal runs.
+    # A SQLite fallback (DATABASE_NAME) is kept for local dev/tests.
     name = os.getenv("DATABASE_NAME")
     if not name:
         raise RuntimeError(
-            "DATABASE_NAME is not set. Ensure it's defined before database operations."
+            "DATABASE_URL is not set. Configure PostgreSQL via DATABASE_URL. "
+            "(Optional fallback for dev/tests: set DATABASE_NAME to use SQLite.)"
         )
 
     if "://" in name:
@@ -26,7 +35,7 @@ def _build_database_url() -> str:
 
     path = Path(name).expanduser()
 
-    # For Windows absolute paths, SQLAlchemy expects forward slashes:
+    # SQLite fallback: For Windows absolute paths, SQLAlchemy expects forward slashes:
     # sqlite:///C:/Users/.../file.db
     if path.is_absolute():
         return f"sqlite:///{path.resolve().as_posix()}"
@@ -51,14 +60,30 @@ def get_engine():
 
 
 def init_db() -> None:
-    engine = get_engine()
-    SQLModel.metadata.create_all(engine)
+    # Use Alembic migrations to manage schema.
+    _run_migrations()
 
 
 def drop_and_recreate_db() -> None:
+    # Dev helper: destructive reset.
     engine = get_engine()
     SQLModel.metadata.drop_all(engine)
-    SQLModel.metadata.create_all(engine)
+    _run_migrations()
+
+
+def _run_migrations() -> None:
+    """Apply Alembic migrations up to head using DATABASE_URL/DATABASE_NAME."""
+    # session.py -> db -> src -> repo root
+    repo_root = Path(__file__).resolve().parents[2]
+    alembic_ini = repo_root / "alembic.ini"
+    if not alembic_ini.exists():
+        # Fallback to create_all if migrations are missing (should not happen).
+        engine = get_engine()
+        SQLModel.metadata.create_all(engine)
+        return
+
+    cfg = Config(str(alembic_ini))
+    command.upgrade(cfg, "head")
 
 
 def get_session() -> Generator[Session, None, None]:

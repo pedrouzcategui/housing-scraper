@@ -1,4 +1,4 @@
 from .db import Database
-from .models import Property, User
+from .models import Listing, User
 
-__all__ = ["Database", "Property", "User"]
+__all__ = ["Database", "Listing", "User"]
