@@ -3,26 +3,26 @@
 ## Project overview
 
 - This repo is an async Playwright scraper for MercadoLibre Venezuela listings.
-- Core flow: [main.py](../main.py) -> `scraper.main()` ([scraper.py](../scraper.py)) -> scrape listing pages -> persist a subset of fields to SQLite via `Property.save()` ([models.py](../models.py)) using `Database.execute_query()` ([db.py](../db.py)).
+- Core flow: [src/main.py](../src/main.py) -> `scraper.scraper.main()` ([src/scraper/scraper.py](../src/scraper/scraper.py)) -> scrape listing pages -> persist a subset of fields to PostgreSQL (recommended) via `Listing.save()` ([src/db/models/property.py](../src/db/models/property.py)) using SQLModel/SQLAlchemy sessions.
 - Logging is first-class: rotating log file + console via `setup_logger()`, and HTML snapshots on failures via `log_failure()` ([logging_utils.py](../logging_utils.py)).
 
 ## Developer workflow (Windows / PowerShell)
 
 - Use `uv` for everything:
-  - Run: `uv run main.py`
+  - Run: `uv run src/main.py`
   - Add deps: `uv add <package>`
   - Install Playwright browsers: `uv run playwright install`
 - Required environment variables come from `.env` loaded by [config.py](../config.py):
   - `MERCADOLIBRE_APARTAMENTOS_URL` (start/search page URL)
-  - `DATABASE_NAME` (SQLite path; common value: `properties.db`)
+  - `DATABASE_URL` (SQLAlchemy URL; recommended Postgres)
   - Optional: `LOG_DIR` (default `logs`), `LOG_LEVEL` (default `INFO`)
 
 ## Runtime behavior you must know
 
 - `DEBUG_MODE` is controlled via env vars in [config.py](../config.py) (`DEBUG_MODE` or `PWDEBUG`). When enabled:
-  - [main.py](../main.py) calls `Database.initialize_fresh()` on every run (drops/recreates the `properties` table).
+  - [src/main.py](../src/main.py) calls `Database.initialize_fresh()` on every run (drops/recreates tables).
   - Errors inside scrape steps are re-raised after logging (`if DEBUG_MODE: raise`).
-- PowerShell example: `$env:PWDEBUG=1; uv run main.py`.
+- PowerShell example: `$env:PWDEBUG=1; uv run src/main.py`.
 
 ## Scraper patterns (Playwright)
 
@@ -37,13 +37,9 @@
 
 ## Database/model conventions (SQLite)
 
-- SQLite schema is defined in `Database.initialize_database()` ([db.py](../db.py)).
-- The `Property` model is a thin wrapper; keep schema + inserts + reads in sync:
-  - Insert mapping is in `Property.save()` ([models.py](../models.py)).
-  - Read mapping assumes `SELECT * FROM properties` column order and reconstructs objects as `Property(*row[1:], id=row[0])`.
-  - If you add/remove a column, update: `CREATE TABLE` SQL, `INSERT` SQL/params, and the `Property.__init__` signature.
+SQLite is supported as a fallback for local dev/tests, but the primary database is PostgreSQL via `DATABASE_URL`.
 
 ## Existing testing situation
 
-- The `tests/` folder is currently empty.
+- There is a small pytest suite under `tests/`.
 - There is an exploratory Playwright stealth check script at [test-playwright-stealth.py](../test-playwright-stealth.py) (uses https://bot.sannysoft.com/).

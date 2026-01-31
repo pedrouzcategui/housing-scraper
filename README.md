@@ -10,7 +10,8 @@ This app sends notifications when there are price changes and it tracks the evol
 
 - Python 3.10
 - Playwright
-- SQLite
+- PostgreSQL
+- SQLite (dev/tests fallback)
 - FastAPI
 - UV package manager
 
@@ -18,15 +19,25 @@ This app sends notifications when there are price changes and it tracks the evol
 
 - I am using `uv` as a python package manager, so commands must be run with `uv run`, and installed with `uv add`.
 
+#### Database (PostgreSQL)
+
+Set `DATABASE_URL` (recommended: in `.env`) to a PostgreSQL connection string.
+
+Example:
+
+```env
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/housing_scraper
+```
+
 #### RUNNING IN DEBUG MODE:
 
 If you want to run the program in DEBUG mode, use this:
 
 ```powershell
-$env:PWDEBUG=1; uv run main.py
+$env:PWDEBUG=1; uv run src/main.py
 ```
 
-In debug mode the app will recreate the SQLite table on startup and re-raise scrape exceptions after logging.
+In debug mode the app will recreate the database schema on startup and re-raise scrape exceptions after logging.
 
 #### Running the backend on development:
 

@@ -1,14 +1,12 @@
-import os
 import asyncio
-from src.scraper.scraper import main
-from src.scraper.config import DEBUG_MODE
-from src.db.db import Database
-from src.utils.strings import to_snake_case
+from scraper.scraper import main
+from scraper.config import DEBUG_MODE
+from db.db import Database
 
 def bootstrap():
     city = input("Enter the city name: ")
-    db_name = f"{to_snake_case(city)}.db"
-    os.environ['DATABASE_NAME'] = db_name
+    # PostgreSQL: configure DATABASE_URL in your environment (e.g. .env)
+    # Keeping DATABASE_NAME unset avoids accidental SQLite usage.
     
     if DEBUG_MODE:
         Database.initialize_fresh()
